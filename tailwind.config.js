@@ -22,9 +22,10 @@ export default {
         }
       },
       fontFamily: {
-        serif: ['"Athelas"', '"Instrument Serif"', '"Cormorant Garamond"', 'Georgia', 'serif'],
-        sans: ['"Vanguard"', '"Vanguard CF"', '"Inter"', 'sans-serif'],
-        vanguard: ['"Vanguard"', '"Vanguard CF"', '"Inter"', 'sans-serif'],
+        serif: ['"Spectral"', 'Georgia', 'serif'],
+        display: ['"Spectral"', 'Georgia', 'serif'],
+        sans: ['"Switzer"', '"Inter"', 'sans-serif'],
+        body: ['"Switzer"', '"Inter"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       letterSpacing: {

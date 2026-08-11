@@ -4,6 +4,12 @@ import re
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
 try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+try:
     from openai import OpenAI
     _openai_available = True
 except ImportError:
