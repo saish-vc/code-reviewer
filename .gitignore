@@ -1,0 +1,24 @@
+# Environment variables (contains secrets - DO NOT commit)
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# CSV data files (optional - remove if you want to track these)
+reviews.csv
+
+# OS files
+.DS_Store
+Thumbs.db
