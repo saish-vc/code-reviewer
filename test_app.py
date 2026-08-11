@@ -118,9 +118,9 @@ def run_tests():
         with urllib.request.urlopen(BASE + "/", timeout=10) as r:
             body = r.read().decode()
             check("Returns 200", r.status == 200)
-            check("Contains title", "AI Code Reviewer" in body)
-            check("Contains form", "review-form" in body)
-            check("Prism.js loaded", "prism" in body)
+            check("Contains title", "REVU" in body or "Code Reviewer" in body)
+            check("Contains root div", 'id="root"' in body or "root" in body)
+            check("Script loaded", "script" in body)
     except Exception as e:
         check("GET / reachable", False, str(e))
 

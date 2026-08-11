@@ -19,7 +19,9 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 
 try:
     from openai import OpenAI
@@ -28,6 +30,22 @@ except ImportError:
     _openai_available = False
 
 app = FastAPI(title="AI Code Reviewer")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+if os.path.exists("dist/assets"):
+    app.mount("/assets", StaticFiles(directory="dist/assets"), name="assets")
+
+if os.path.exists("public/artwork"):
+    app.mount("/artwork", StaticFiles(directory="public/artwork"), name="artwork")
+elif os.path.exists("dist/artwork"):
+    app.mount("/artwork", StaticFiles(directory="dist/artwork"), name="artwork")
 
 _review_log: list[dict] = []
 _ta_queue: list[dict] = []
@@ -640,7 +658,9 @@ def _append_csv(record: dict) -> None:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index() -> HTMLResponse:
+async def index():
+    if os.path.exists("dist/index.html"):
+        return FileResponse("dist/index.html")
     return HTMLResponse(content=HTML_PAGE)
 
 
