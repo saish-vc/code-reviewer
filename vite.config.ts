@@ -12,11 +12,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
-      },
+      '/review': 'http://localhost:7860',
+      '/rate': 'http://localhost:7860',
+      '/ta-submit': 'http://localhost:7860',
+      '/metrics': 'http://localhost:7860',
+      '/ta-queue': 'http://localhost:7860',
     },
   },
 });

@@ -18,7 +18,7 @@ interface ReviewResult {
   analysis_time_ms: number;
 }
 
-const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
 
 const SAMPLE_PYTHON = `def calculate_average(numbers):
     total = 0
