@@ -16,8 +16,9 @@ env/
 .vscode/
 .idea/
 
-# CSV data files (optional - remove if you want to track these)
-reviews.csv
+# Database files
+*.db
+reviews.db
 
 # OS files
 .DS_Store
