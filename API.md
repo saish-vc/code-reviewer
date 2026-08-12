@@ -1,6 +1,6 @@
-# REVU AI Code Reviewer — Backend API Specification (v2.0)
+# REVU AI Code Reviewer — Backend API Specification (v3.0)
 
-Clean, CORS-enabled REST & SSE API for beginner Python & C++ code review, static analysis, and LLM pedagogical feedback.
+Clean, CORS-enabled REST & SSE API for student code review, static analysis, resubmission diffing, and LLM pedagogical feedback.
 
 ## 🚀 Base URL
 Default local development: `http://localhost:7860`
@@ -13,6 +13,8 @@ Default local development: `http://localhost:7860`
 |--------|----------|-------------|---------------|
 | `GET`  | `/` | API health check & status | No |
 | `POST` | `/review` | Execute static analysis + LLM feedback | No |
+| `POST` | `/reviews/{review_id}/resubmit` | Resubmit revised code linked to parent review | No |
+| `GET`  | `/reviews/{review_id}/comparison` | Compare original vs resubmitted findings & diff | No |
 | `GET`  | `/review/stream` | Server-Sent Events (SSE) stream for LLM response | No |
 | `POST` | `/rate` | Submit rating (+1 / -1) for a review | No |
 | `POST` | `/ta-submit` | Submit review to human TA queue | No |
@@ -31,10 +33,11 @@ Accepts `multipart/form-data` with form fields:
 - `code`: source code string (optional if file provided)
 - `file`: uploaded file `.py` or `.cpp` (optional if code string provided)
 
-#### Example Response Body (`200 OK`):
+#### Response Body (`200 OK`):
 ```json
 {
   "review_id": "a1b2c3d4e5f6-1786435000",
+  "parent_review_id": null,
   "language": "python",
   "code_hash": "2f0c7...",
   "issues": [
@@ -63,6 +66,49 @@ Accepts `multipart/form-data` with form fields:
   "consent_version": "v1.0"
 }
 ```
+
+---
+
+### 2. `POST /reviews/{review_id}/resubmit`
+Accepts `multipart/form-data`:
+- `language`: `"python"` or `"cpp"` (optional, defaults to parent review's language)
+- `code`: revised code string
+- `file`: revised uploaded file
+
+#### Response Body (`200 OK`):
+```json
+{
+  "review_id": "c9d8e7f6a5b4-1786435999",
+  "parent_review_id": "a1b2c3d4e5f6-1786435000",
+  "language": "python",
+  "issues": [],
+  "issues_count": 0,
+  "delta_summary": {
+    "static_issue_count_change": -1,
+    "original_static_count": 1,
+    "revised_static_count": 0,
+    "severity_changes": { "warning": -1 },
+    "ai_issue_count_change": -1,
+    "original_ai_count": 1,
+    "revised_ai_count": 0
+  },
+  "line_diff": "--- original\n+++ revised\n@@ -1,4 +1,3 @@\n..."
+}
+```
+
+---
+
+### 3. `GET /reviews/{review_id}/comparison`
+Returns side-by-side comparison between original and revised submissions:
+```json
+{
+  "original_review": { ... },
+  "revised_review": { ... },
+  "delta_summary": { ... },
+  "line_diff": "..."
+}
+```
+
 
 ---
 

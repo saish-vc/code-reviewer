@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Upload, ThumbsUp, ThumbsDown, Send, AlertTriangle, CheckCircle, Clock, FileCode, Sparkles, RefreshCw } from 'lucide-react';
+import { Play, Upload, ThumbsUp, ThumbsDown, Send, AlertTriangle, CheckCircle, Clock, FileCode, Sparkles, RefreshCw, GitCompare, ArrowRight, X } from 'lucide-react';
 
 interface StaticIssue {
   line: string;
@@ -7,15 +7,41 @@ interface StaticIssue {
   message: string;
 }
 
+interface DeltaSummary {
+  static_issue_count_change: number;
+  original_static_count: number;
+  revised_static_count: number;
+  severity_changes: Record<string, number>;
+  ai_issue_count_change: number;
+  original_ai_count: number;
+  revised_ai_count: number;
+}
+
 interface ReviewResult {
   review_id: string;
+  parent_review_id?: string | null;
   language: string;
   issues: StaticIssue[];
   issues_count: number;
   tool_warnings: string[];
   llm_feedback: string;
+  structured_feedback?: Array<{
+    issue: string;
+    line?: number | null;
+    explanation: string;
+    fix: string;
+  }>;
   llm_available: boolean;
   analysis_time_ms: number;
+  delta_summary?: DeltaSummary | null;
+  line_diff?: string | null;
+}
+
+interface ComparisonData {
+  original_review: ReviewResult;
+  revised_review: ReviewResult;
+  delta_summary: DeltaSummary;
+  line_diff: string;
 }
 
 const API_BASE_URL = (import.meta as any).env?.VITE_API_BASE_URL || '';
@@ -53,6 +79,12 @@ export const ReviewTool: React.FC = () => {
   const [taSubmitted, setTaSubmitted] = useState(false);
   const [taSubmitting, setTaSubmitting] = useState(false);
 
+  // Resubmission & Comparison States
+  const [resubmittingParentId, setResubmittingParentId] = useState<string | null>(null);
+  const [comparisonData, setComparisonData] = useState<ComparisonData | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
+  const [loadingComparison, setLoadingComparison] = useState(false);
+
   const handleLanguageChange = (lang: 'python' | 'cpp') => {
     setLanguage(lang);
     if (!file) {
@@ -78,6 +110,18 @@ export const ReviewTool: React.FC = () => {
     setCode(language === 'python' ? SAMPLE_PYTHON : SAMPLE_CPP);
   };
 
+  const handleStartResubmit = () => {
+    if (!result) return;
+    setResubmittingParentId(result.review_id);
+    // Smoothly scroll back to editor
+    const el = document.getElementById('code-editor-area');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const handleCancelResubmit = () => {
+    setResubmittingParentId(null);
+  };
+
   const handleSubmitReview = async () => {
     if (!code.trim() && !file) {
       setError("Please paste code or upload a file.");
@@ -99,7 +143,11 @@ export const ReviewTool: React.FC = () => {
         formData.append('code', code);
       }
 
-      const res = await fetch(`${API_BASE_URL}/review`, {
+      const endpoint = resubmittingParentId
+        ? `${API_BASE_URL}/reviews/${resubmittingParentId}/resubmit`
+        : `${API_BASE_URL}/review`;
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         body: formData,
       });
@@ -111,10 +159,29 @@ export const ReviewTool: React.FC = () => {
 
       const data: ReviewResult = await res.json();
       setResult(data);
+      setResubmittingParentId(null);
     } catch (err: any) {
       setError(err.message || "Failed to reach backend analysis server.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFetchComparison = async () => {
+    if (!result) return;
+    setLoadingComparison(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/reviews/${result.review_id}/comparison`);
+      if (!res.ok) {
+        throw new Error("Could not fetch comparison data.");
+      }
+      const data: ComparisonData = await res.json();
+      setComparisonData(data);
+      setShowComparison(true);
+    } catch (err: any) {
+      setError(err.message || "Comparison endpoint error.");
+    } finally {
+      setLoadingComparison(false);
     }
   };
 
@@ -130,7 +197,6 @@ export const ReviewTool: React.FC = () => {
         setRatingSubmitted(ratingVal);
       }
     } catch {
-      // Keep optimistic rating
       setRatingSubmitted(ratingVal);
     }
   };
@@ -154,10 +220,8 @@ export const ReviewTool: React.FC = () => {
     }
   };
 
-  // Helper to parse LLM feedback into distinct numbered editorial points
   const parseLlmPoints = (text: string) => {
     if (!text) return [];
-    // Split by numbered list pattern like 1., 2., 3. or linebreaks with numbers
     const parts = text.split(/(?=\n?\d+[\.\)])/g).filter(p => p.trim().length > 0);
     if (parts.length > 1) {
       return parts.map(p => p.replace(/^\n?\d+[\.\)]\s*/, '').trim());
@@ -175,7 +239,7 @@ export const ReviewTool: React.FC = () => {
             <div className="flex items-center gap-3 mb-2">
               <span className="w-2.5 h-2.5 bg-brand-red animate-pulse"></span>
               <span className="font-mono text-xs text-brand-red uppercase tracking-widest font-bold">
-                LIVE INTERACTIVE ENGINE
+                LIVE INTERACTIVE ENGINE v3
               </span>
             </div>
             <h2 className="font-serif text-4xl sm:text-6xl font-normal text-white uppercase">
@@ -205,8 +269,21 @@ export const ReviewTool: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Left Column: Code Input & Controls (5 cols) */}
-          <div className="lg:col-span-5 flex flex-col gap-6">
+          <div id="code-editor-area" className="lg:col-span-5 flex flex-col gap-6">
             
+            {/* Resubmission Mode Banner if active */}
+            {resubmittingParentId && (
+              <div className="p-4 border border-brand-red bg-brand-red/10 flex items-center justify-between font-mono text-xs text-white">
+                <div className="flex items-center gap-2">
+                  <GitCompare className="w-4 h-4 text-brand-red" />
+                  <span>RESUBMITTING REVISED CODE FOR REVIEW <strong>#{resubmittingParentId.slice(0, 8)}</strong></span>
+                </div>
+                <button onClick={handleCancelResubmit} className="text-brand-gray hover:text-white underline">
+                  CANCEL
+                </button>
+              </div>
+            )}
+
             {/* Language Selection Toggle */}
             <div className="flex flex-col gap-2">
               <label className="font-mono text-xs text-brand-gray uppercase tracking-wider">
@@ -302,7 +379,7 @@ export const ReviewTool: React.FC = () => {
               ) : (
                 <>
                   <Play className="w-4 h-4 fill-white" />
-                  <span>RUN ANALYZER &amp; AI REVIEW →</span>
+                  <span>{resubmittingParentId ? 'SUBMIT REVISED VERSION →' : 'RUN ANALYZER & AI REVIEW →'}</span>
                 </>
               )}
             </button>
@@ -329,6 +406,11 @@ export const ReviewTool: React.FC = () => {
                       {result.language}
                     </span>
                     <span className="text-brand-gray">ID: {result.review_id}</span>
+                    {result.parent_review_id && (
+                      <span className="px-2 py-0.5 border border-brand-red text-brand-red text-[10px]">
+                        REVISION OF #{result.parent_review_id.slice(0, 8)}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-brand-gray">
                     <span className="flex items-center gap-1">
@@ -341,25 +423,71 @@ export const ReviewTool: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Delta Summary Highlight Banner if this is a Resubmission */}
+                {result.delta_summary && (
+                  <div className="p-5 border border-white/15 bg-brand-dark/90 space-y-3 font-mono text-xs">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                      <span className="text-brand-red font-bold uppercase tracking-wider flex items-center gap-2">
+                        <GitCompare className="w-4 h-4" />
+                        <span>RESUBMISSION DELTA SUMMARY</span>
+                      </span>
+                      <button
+                        onClick={handleFetchComparison}
+                        disabled={loadingComparison}
+                        className="px-3 py-1 bg-white/10 hover:bg-white/20 border border-white/20 text-white text-[11px] font-bold uppercase flex items-center gap-1.5"
+                      >
+                        {loadingComparison ? <RefreshCw className="w-3 h-3 animate-spin" /> : <GitCompare className="w-3 h-3" />}
+                        <span>VIEW SIDE-BY-SIDE DIFF</span>
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-1">
+                      <div className="p-3 border border-white/10 bg-brand-surface">
+                        <span className="text-[10px] text-brand-gray uppercase block">STATIC ISSUES</span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-base font-bold text-white">
+                            {result.delta_summary.original_static_count} → {result.delta_summary.revised_static_count}
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            result.delta_summary.static_issue_count_change <= 0 ? 'text-emerald-400' : 'text-red-400'
+                          }`}>
+                            ({result.delta_summary.static_issue_count_change <= 0 ? '' : '+'}{result.delta_summary.static_issue_count_change})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 border border-white/10 bg-brand-surface">
+                        <span className="text-[10px] text-brand-gray uppercase block">AI SUGGESTIONS</span>
+                        <div className="flex items-baseline gap-2 mt-1">
+                          <span className="text-base font-bold text-white">
+                            {result.delta_summary.original_ai_count} → {result.delta_summary.revised_ai_count}
+                          </span>
+                          <span className={`text-xs font-bold ${
+                            result.delta_summary.ai_issue_count_change <= 0 ? 'text-emerald-400' : 'text-red-400'
+                          }`}>
+                            ({result.delta_summary.ai_issue_count_change <= 0 ? '' : '+'}{result.delta_summary.ai_issue_count_change})
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 border border-white/10 bg-brand-surface col-span-2 sm:col-span-1">
+                        <span className="text-[10px] text-brand-gray uppercase block">VERDICT</span>
+                        <span className="text-xs font-bold text-emerald-400 mt-1 block uppercase">
+                          {result.delta_summary.static_issue_count_change < 0 ? 'FIXES RESOLVED ISSUES ✓' : 'CODE MODIFIED'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* AI Unavailable Warning Banner if applicable */}
                 {!result.llm_available && (
                   <div className="p-4 border border-amber-500/40 bg-amber-950/20 text-amber-300 font-mono text-xs flex items-center gap-3">
                     <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
                     <div>
                       <span className="font-bold block">NVIDIA NIM AI FEEDBACK OFFLINE</span>
-                      <span className="text-[11px] opacity-80">Showing deterministic static analysis findings below. Set NVIDIA_API_KEY to enable LLM explanations.</span>
+                      <span className="text-[11px] opacity-80">Showing deterministic static analysis findings below.</span>
                     </div>
-                  </div>
-                )}
-
-                {/* Tool Warnings */}
-                {result.tool_warnings && result.tool_warnings.length > 0 && (
-                  <div className="space-y-1">
-                    {result.tool_warnings.map((w, idx) => (
-                      <div key={idx} className="text-[11px] font-mono text-amber-400/80 bg-amber-950/10 px-3 py-1 border-l border-amber-500">
-                        {w}
-                      </div>
-                    ))}
                   </div>
                 )}
 
@@ -438,33 +566,25 @@ export const ReviewTool: React.FC = () => {
                 {/* Actions & Feedback Row */}
                 <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
                   
-                  {/* Thumb Ratings */}
+                  {/* Resubmit Revised Code Action */}
                   <div className="flex items-center gap-3">
-                    <span className="text-brand-gray">WAS THIS HELPFUL?</span>
                     <button
-                      onClick={() => handleRating(1)}
-                      className={`p-2 border transition-all ${
-                        ratingSubmitted === 1
-                          ? 'bg-emerald-950 border-emerald-500 text-emerald-400'
-                          : 'border-white/15 hover:border-white/40 text-brand-gray hover:text-white'
-                      }`}
-                      title="Helpful"
+                      onClick={handleStartResubmit}
+                      className="px-4 py-2 bg-brand-red hover:bg-brand-darkRed text-white uppercase font-bold tracking-wider transition-colors flex items-center gap-2 border border-brand-red"
                     >
-                      <ThumbsUp className="w-4 h-4" />
+                      <GitCompare className="w-4 h-4" />
+                      <span>RESUBMIT REVISED CODE</span>
                     </button>
-                    <button
-                      onClick={() => handleRating(-1)}
-                      className={`p-2 border transition-all ${
-                        ratingSubmitted === -1
-                          ? 'bg-red-950 border-red-500 text-red-400'
-                          : 'border-white/15 hover:border-white/40 text-brand-gray hover:text-white'
-                      }`}
-                      title="Not Helpful"
-                    >
-                      <ThumbsDown className="w-4 h-4" />
-                    </button>
-                    {ratingSubmitted && (
-                      <span className="text-emerald-400 text-[11px]">RATING SAVED</span>
+                    
+                    {(result.parent_review_id || result.delta_summary) && (
+                      <button
+                        onClick={handleFetchComparison}
+                        disabled={loadingComparison}
+                        className="px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+                      >
+                        <ArrowRight className="w-4 h-4 text-brand-red" />
+                        <span>COMPARISON VIEW</span>
+                      </button>
                     )}
                   </div>
 
@@ -479,7 +599,7 @@ export const ReviewTool: React.FC = () => {
                       <button
                         onClick={handleTaSubmit}
                         disabled={taSubmitting}
-                        className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white uppercase font-bold tracking-wider transition-colors flex items-center gap-2"
+                        className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white uppercase flagging-wider transition-colors flex items-center gap-2"
                       >
                         <span>SUBMIT FOR TA REVIEW</span>
                       </button>
@@ -509,6 +629,132 @@ export const ReviewTool: React.FC = () => {
         </div>
 
       </div>
+
+      {/* Comparison View Overlay Modal */}
+      {showComparison && comparisonData && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 md:p-8 animate-fadeIn">
+          <div className="bg-brand-dark border border-white/20 max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-brand-surface">
+              <div className="flex items-center gap-3">
+                <GitCompare className="w-5 h-5 text-brand-red" />
+                <h3 className="font-serif text-xl text-white uppercase">
+                  BEFORE / AFTER RESUBMISSION COMPARISON
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowComparison(false)}
+                className="p-2 text-brand-gray hover:text-white border border-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto space-y-6 flex-grow font-mono text-xs">
+              
+              {/* Delta Highlights Header Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 border border-white/10 bg-brand-surface">
+                  <span className="text-[10px] text-brand-gray uppercase">ORIGINAL ISSUES</span>
+                  <div className="text-2xl font-bold text-red-400 mt-1">
+                    {comparisonData.delta_summary.original_static_count} static / {comparisonData.delta_summary.original_ai_count} AI
+                  </div>
+                </div>
+                <div className="p-4 border border-white/10 bg-brand-surface">
+                  <span className="text-[10px] text-brand-gray uppercase">REVISED ISSUES</span>
+                  <div className="text-2xl font-bold text-emerald-400 mt-1">
+                    {comparisonData.delta_summary.revised_static_count} static / {comparisonData.delta_summary.revised_ai_count} AI
+                  </div>
+                </div>
+                <div className="p-4 border border-white/10 bg-brand-surface">
+                  <span className="text-[10px] text-brand-gray uppercase">NET ISSUE CHANGE</span>
+                  <div className={`text-2xl font-bold mt-1 ${
+                    comparisonData.delta_summary.static_issue_count_change <= 0 ? 'text-emerald-400' : 'text-red-400'
+                  }`}>
+                    {comparisonData.delta_summary.static_issue_count_change <= 0 ? '' : '+'}{comparisonData.delta_summary.static_issue_count_change} total
+                  </div>
+                </div>
+              </div>
+
+              {/* Line-Level Diff Box */}
+              <div>
+                <h4 className="font-bold text-white uppercase tracking-wider mb-2">LINE-LEVEL UNIFIED DIFF</h4>
+                <pre className="p-4 bg-brand-surface border border-white/15 overflow-x-auto text-[11px] font-mono leading-relaxed max-h-60 text-brand-cream">
+                  {comparisonData.line_diff.split('\n').map((line, i) => {
+                    const isAdd = line.startsWith('+') && !line.startsWith('+++');
+                    const isDel = line.startsWith('-') && !line.startsWith('---');
+                    return (
+                      <div
+                        key={i}
+                        className={
+                          isAdd
+                            ? 'bg-emerald-950/60 text-emerald-300 font-bold px-1'
+                            : isDel
+                            ? 'bg-red-950/60 text-red-300 font-bold px-1'
+                            : 'opacity-80'
+                        }
+                      >
+                        {line}
+                      </div>
+                    );
+                  })}
+                </pre>
+              </div>
+
+              {/* Side-by-side static checker findings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-bold text-red-400 uppercase tracking-wider mb-2">
+                    ORIGINAL FINDINGS ({comparisonData.original_review.issues.length})
+                  </h4>
+                  <div className="border border-white/10 bg-brand-surface p-3 space-y-2 max-h-48 overflow-y-auto">
+                    {comparisonData.original_review.issues.map((iss, idx) => (
+                      <div key={idx} className="p-2 bg-brand-dark/60 border-l-2 border-l-red-500 text-[11px]">
+                        <span className="font-bold text-white">L{iss.line}:</span> {iss.message}
+                      </div>
+                    ))}
+                    {comparisonData.original_review.issues.length === 0 && (
+                      <span className="text-brand-gray text-[11px]">No issues in original.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                    REVISED FINDINGS ({comparisonData.revised_review.issues.length})
+                  </h4>
+                  <div className="border border-white/10 bg-brand-surface p-3 space-y-2 max-h-48 overflow-y-auto">
+                    {comparisonData.revised_review.issues.map((iss, idx) => (
+                      <div key={idx} className="p-2 bg-brand-dark/60 border-l-2 border-l-emerald-500 text-[11px]">
+                        <span className="font-bold text-white">L{iss.line}:</span> {iss.message}
+                      </div>
+                    ))}
+                    {comparisonData.revised_review.issues.length === 0 && (
+                      <span className="text-emerald-400 text-[11px]">All static issues resolved! ✓</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-white/10 bg-brand-surface flex justify-end">
+              <button
+                onClick={() => setShowComparison(false)}
+                className="px-6 py-2 bg-brand-red hover:bg-brand-darkRed text-white font-mono text-xs font-bold uppercase tracking-wider"
+              >
+                CLOSE COMPARISON
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </section>
   );
 };
+

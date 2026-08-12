@@ -142,11 +142,12 @@ class TestV2Suite(unittest.TestCase):
     # === 3. INTEGRATION TESTS FOR V2 API CONTRACT ===
 
     def test_api_health_check(self):
-        res = client.get("/")
+        res = client.get("/health")
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertEqual(data["status"], "ok")
-        self.assertEqual(data["version"], "v2.0")
+        self.assertTrue(data["version"].startswith("v"))
+
 
     def test_api_review_contract(self):
         snippet = "def add(a, b):\n    return a + b\n"

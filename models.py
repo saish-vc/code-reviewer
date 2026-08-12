@@ -20,8 +20,19 @@ class ReviewRequest(BaseModel):
     code: Optional[str] = None
 
 
+class DeltaSummary(BaseModel):
+    static_issue_count_change: int
+    original_static_count: int
+    revised_static_count: int
+    severity_changes: Dict[str, int]
+    ai_issue_count_change: int
+    original_ai_count: int
+    revised_ai_count: int
+
+
 class ReviewResponse(BaseModel):
     review_id: str
+    parent_review_id: Optional[str] = None
     language: str
     code_hash: str
     issues: List[StaticIssue]
@@ -35,9 +46,18 @@ class ReviewResponse(BaseModel):
     analysis_time_ms: int
     cached: bool = False
     consent_version: str = "v1.0"
+    delta_summary: Optional[DeltaSummary] = None
+    line_diff: Optional[str] = None
 
     class Config:
         populate_by_name = True
+
+
+class ComparisonResponse(BaseModel):
+    original_review: Dict[str, Any]
+    revised_review: Dict[str, Any]
+    delta_summary: DeltaSummary
+    line_diff: str
 
 
 class RatingRequest(BaseModel):
@@ -62,4 +82,5 @@ class MetricsResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str = "ok"
     service: str = "REVU API"
-    version: str = "v2.0"
+    version: str = "v3.0"
+
