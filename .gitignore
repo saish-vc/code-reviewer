@@ -27,3 +27,12 @@ Thumbs.db
 # Node dependencies
 node_modules/
 dist/
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+*.tfvars
+!*.tfvars.example
+

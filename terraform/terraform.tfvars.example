@@ -1,0 +1,4 @@
+# Example terraform.tfvars file (gitignored)
+render_api_key = "rnd_your_render_api_key_here"
+nvidia_api_key = "nvapi-your-key-here"
+service_name   = "revu-ai-code-reviewer"

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: revu-backend
+  labels:
+    app: revu-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: revu-backend
+  template:
+    metadata:
+      labels:
+        app: revu-backend
+    spec:
+      containers:
+        - name: revu-backend
+          image: ghcr.io/saish-vc/code-reviewer:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 7860
+              name: http
+          envFrom:
+            - configMapRef:
+                name: revu-backend-config
+          env:
+            - name: NVIDIA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: revu-backend-secret
+                  key: NVIDIA_API_KEY
+            - name: GITHUB_WEBHOOK_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: revu-backend-secret
+                  key: GITHUB_WEBHOOK_SECRET
+            - name: ADMIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: revu-backend-secret
+                  key: ADMIN_API_KEY
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 7860
+            initialDelaySeconds: 5
+            periodSeconds: 10

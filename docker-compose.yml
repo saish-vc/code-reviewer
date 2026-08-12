@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "7860:7860"
+    environment:
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:7860,http://127.0.0.1:5173,http://127.0.0.1:7860
+      - DATABASE_URL=sqlite:////app/reviews.db
+    volumes:
+      - revu_data:/app
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  revu_data:

@@ -6,3 +6,5 @@ pylint>=3.2.0
 bandit>=1.7.9
 cpplint>=1.6.1
 python-dotenv>=1.0.0
+prometheus-client>=0.20.0
+

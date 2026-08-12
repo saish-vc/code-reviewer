@@ -33,17 +33,11 @@ from database import (
 
 from models import (
     HealthResponse,
-    MetricsResponse,
-    RatingRequest,
     ReviewResponse,
-    StaticIssue,
-    StructuredFeedbackPoint,
-    TaSubmitRequest,
 )
 from nim_client import build_prompt, generate_ai_stream, get_ai_feedback
 from static_analysis import run_static_analysis_async
 
-# Initialize database tables on startup
 init_db()
 
 app = FastAPI(
@@ -463,9 +457,45 @@ async def ta_submit(request: Request) -> JSONResponse:
     raise HTTPException(status_code=404, detail="Review ID not found.")
 
 
-@app.get("/metrics", response_model=MetricsResponse)
-async def get_metrics() -> JSONResponse:
-    """Returns aggregated research metrics."""
+from prometheus_client import Counter, Histogram, REGISTRY, generate_latest, CONTENT_TYPE_LATEST
+
+def _get_or_create_histogram(name, documentation, labelnames):
+    try:
+        return Histogram(name, documentation, labelnames)
+    except ValueError:
+        return REGISTRY._names_to_collectors[name]
+
+def _get_or_create_counter(name, documentation, labelnames):
+    try:
+        return Counter(name, documentation, labelnames)
+    except ValueError:
+        return REGISTRY._names_to_collectors[name]
+
+REQUEST_LATENCY = _get_or_create_histogram("http_request_duration_seconds", "HTTP request latency in seconds", ["endpoint", "method"])
+REQUEST_COUNT = _get_or_create_counter("http_requests_total", "Total HTTP requests", ["endpoint", "method", "status"])
+LINTER_DURATION = _get_or_create_histogram("linter_subprocess_duration_seconds", "Linter subprocess execution duration in seconds", ["language"])
+LLM_CALL_DURATION = _get_or_create_histogram("llm_call_duration_seconds", "LLM call duration in seconds", ["provider"])
+LLM_FALLBACK_COUNT = _get_or_create_counter("llm_fallback_total", "Total LLM fallback triggers", ["reason"])
+
+
+@app.middleware("http")
+async def prometheus_middleware(request: Request, call_next):
+    start_time = time.monotonic()
+    response = await call_next(request)
+    duration = time.monotonic() - start_time
+    endpoint = request.url.path
+    REQUEST_LATENCY.labels(endpoint=endpoint, method=request.method).observe(duration)
+    REQUEST_COUNT.labels(endpoint=endpoint, method=request.method, status=response.status_code).inc()
+    return response
+
+
+@app.get("/metrics")
+async def get_metrics(request: Request):
+    """Returns research JSON metrics or Prometheus operational metrics based on Accept header."""
+    accept = request.headers.get("accept", "")
+    if "text/plain" in accept or "prometheus" in accept or not accept or accept == "*/*":
+        return HTMLResponse(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
     all_records = get_all_reviews()
     total = len(all_records)
     rated = [e for e in all_records if e.get("rating") in (-1, 1)]

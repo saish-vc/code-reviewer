@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: revu-backend-service
+  labels:
+    app: revu-backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7860
+      targetPort: 7860
+      protocol: TCP
+      name: http
+  selector:
+    app: revu-backend
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: revu-backend-ingress
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: revu-backend-service
+                port:
+                  number: 7860

@@ -1,0 +1,22 @@
+apiVersion: 1
+
+groups:
+  - name: revu_alerts
+    rules:
+      - alert: HighLlmFallbackRate
+        expr: sum(rate(llm_fallback_total[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "REVU AI Fallback Rate High"
+          description: "LLM fallback rate exceeded 20% over the last 5 minutes."
+
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) > 0.05
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "REVU Backend 5xx Errors Spiking"
+          description: "5xx error rate exceeded 0.05 req/sec over the last minute."

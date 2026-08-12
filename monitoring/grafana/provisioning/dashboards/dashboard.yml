@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'REVU Dashboards'
+    orgId: 1
+    folder: 'REVU Operations'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards

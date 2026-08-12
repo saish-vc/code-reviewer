@@ -25,6 +25,7 @@ results: list[tuple[str, bool, str]] = []
 def req(method: str, path: str, data=None, headers=None, raw_body=None):
     url = BASE + path
     h = headers or {}
+    h.setdefault("Accept", "application/json")
     body = None
     if raw_body is not None:
         body = raw_body
@@ -233,22 +234,37 @@ def run_tests():
 
 
 if __name__ == "__main__":
-    server = subprocess.Popen(
-        [sys.executable, "app.py"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={**os.environ, "NVIDIA_API_KEY": ""},
-    )
-    print("Starting server...")
-    if not wait_for_server(30):
-        print("Server failed to start. Stderr:")
-        print(server.stderr.read().decode())
-        server.terminate()
-        sys.exit(1)
-    print("Server ready.\n")
+    already_running = False
+    try:
+        health_req = urllib.request.Request(BASE + "/health")
+        with urllib.request.urlopen(health_req, timeout=2) as r:
+            if r.status == 200:
+                already_running = True
+    except Exception:
+        already_running = False
+
+    server = None
+    if not already_running:
+        server = subprocess.Popen(
+            [sys.executable, "app.py"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env={**os.environ, "NVIDIA_API_KEY": ""},
+        )
+        print("Starting server...")
+        if not wait_for_server(30):
+            print("Server failed to start. Stderr:")
+            print(server.stderr.read().decode())
+            server.terminate()
+            sys.exit(1)
+        print("Server ready.\n")
+    else:
+        print("Connecting to existing running server...\n")
+
     try:
         ok = run_tests()
     finally:
-        server.terminate()
-        server.wait()
+        if server:
+            server.terminate()
+            server.wait()
     sys.exit(0 if ok else 1)

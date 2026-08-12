@@ -1,70 +1,102 @@
-# 🤖 AI Code Reviewer
+# 🤖 REVU — AI Code Reviewer (v4 Operational Edition)
 
-A FastAPI-powered AI code review tool that uses NVIDIA's LLM API to provide intelligent code analysis, bug detection, and suggestions across multiple programming languages.
+A FastAPI backend and React single-page application built for CS education research, combining multi-language static analysis (`pylint`, `bandit`, `cpplint`) with NVIDIA NIM pedagogical feedback.
 
-## ✨ Features
+---
 
-- **Multi-language support** — Python, C, C++, JavaScript, Java, and more
-- **Static analysis** — Integrates with `pylint`, `bandit`, and `cpplint`
-- **AI-powered reviews** — Uses NVIDIA NIM (LLM) for deep code insights and suggestions
-- **Rate limiting** — Built-in rate limiting per client
-- **Review history** — Logs all reviews to CSV for later analysis
-- **Teaching Assistant Queue** — Submission queue for TA review workflows
-- **REST API** — Clean FastAPI endpoints for easy integration
-
-## 🚀 Getting Started
+## 🚀 Quick Start (Local Development)
 
 ### Prerequisites
+- Docker & Docker Compose **OR** Python 3.11+ and Node.js 20+
 
-- Python 3.10+
-- An [NVIDIA API key](https://build.nvidia.com/) (for LLM-powered reviews)
+### Option A: Docker Compose (Recommended)
+Launch the backend, Prometheus, and Grafana in containerized isolation:
+```bash
+docker-compose up --build
+```
+- **REVU Application & API**: `http://localhost:7860`
+- **Prometheus Metrics**: `http://localhost:9090`
+- **Grafana Dashboard**: `http://localhost:3000` (Default login: `admin` / `admin`)
 
-### Installation
+### Option B: Local Environment Setup
+```bash
+# 1. Install Python dependencies
+pip install -r requirements.txt
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/code-reviewer.git
-   cd code-reviewer
-   ```
+# 2. Configure environment
+cp .env.example .env
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
+# 3. Start API server
+python app.py
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your NVIDIA API key
-   ```
+---
 
-4. **Run the server**
-   ```bash
-   python app.py
-   ```
-   The server will start at `http://localhost:8000`.
+## 🏗️ Infrastructure as Code (Terraform)
 
-## 🔧 API Endpoints
+Terraform configurations are located in `terraform/` for provisioning free-tier Web Services (Render / Cloud Container hosting).
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/review` | Submit code for AI review |
-| `GET`  | `/history` | Get review history |
-| `GET`  | `/ta-queue` | View TA submission queue |
-| `POST` | `/ta-submit` | Submit to TA queue |
-| `GET`  | `/docs` | Interactive API docs (Swagger UI) |
+### Terraform Commands
+```bash
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# Edit terraform.tfvars with your API keys
 
-## 📦 Tech Stack
+terraform init
+terraform plan
+terraform apply
+```
 
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com/) + [Uvicorn](https://www.uvicorn.org/)
-- **AI**: [NVIDIA NIM](https://build.nvidia.com/) via OpenAI-compatible API
-- **Static Analysis**: `pylint`, `bandit`, `cpplint`
-- **Storage**: CSV-based review log
+*Note*: `.tfvars` files are strictly gitignored to prevent secret leaks.
 
-## 🛡️ Security Note
+---
 
-Never commit your `.env` file. Use `.env.example` as a template and keep your API keys private.
+## 🔄 CI/CD Pipeline (GitHub Actions)
 
-## 📄 License
+The repository features two distinct GitHub Actions workflows:
 
-MIT License — feel free to use and modify.
+1. **Continuous Integration (`.github/workflows/ci.yml`)**:
+   - Triggers on PRs and feature branch pushes.
+   - Installs dependencies, runs `pylint`, executes `pytest` suite (`test_v2.py`, `test_v3.py`), and validates Vite frontend build (`npm run build`).
+
+2. **Continuous Deployment (`.github/workflows/cd.yml`)**:
+   - Triggers on merge to `main`.
+   - Builds container image, pushes to GitHub Container Registry (`ghcr.io`), and triggers deployment webhooks.
+
+---
+
+## ☸️ Kubernetes Deployment (k3s / Minikube / Cloud)
+
+Kubernetes manifests are located in `k8s/` for container orchestration beyond local Docker Compose:
+
+```bash
+# 1. Apply configuration and secrets
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+
+# 2. Deploy backend service and ingress
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service-ingress.yaml
+```
+
+**Manifest Summary**:
+- `configmap.yaml`: Non-sensitive operational environment parameters.
+- `secret.yaml`: API keys and secrets externalized from code.
+- `deployment.yaml`: Tuned resource constraints (128Mi-512Mi RAM, 100m-500m CPU) with readiness/liveness health probes (`/health`).
+- `service-ingress.yaml`: ClusterIP service exposure and HTTP ingress routing.
+
+---
+
+## 📊 Observability & Operational Metrics
+
+- **Prometheus Endpoint**: `GET /metrics` (returns Prometheus metric vectors when scraped by Prometheus or JSON stats for research analytics).
+- **Grafana Dashboard**: Provisioned automatically under `REVU Operations` featuring p95 latency tracking, LLM fallback counters, and HTTP error rate alerts.
+- **Alert Rules**: Pre-configured in `monitoring/grafana/provisioning/alerting/alerts.yml` targeting fallback rates >20% and 5xx error spikes.
+
+---
+
+## 📄 API & License
+
+Refer to [API.md](file:///c:/Users/saish/OneDrive/Documents/Pictures/code%20reviewer/API.md) for endpoint signatures and response contracts.
+
+*License*: MIT License.
