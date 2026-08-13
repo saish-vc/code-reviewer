@@ -482,11 +482,12 @@ export const ReviewTool: React.FC = () => {
 
                 {/* AI Unavailable Warning Banner if applicable */}
                 {!result.llm_available && (
-                  <div className="p-4 border border-amber-500/40 bg-amber-950/20 text-amber-300 font-mono text-xs flex items-center gap-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                    <div>
-                      <span className="font-bold block">NVIDIA NIM AI FEEDBACK OFFLINE</span>
-                      <span className="text-[11px] opacity-80">Showing deterministic static analysis findings below.</span>
+                  <div className="p-4 border border-amber-500/40 bg-amber-950/20 text-amber-300 font-mono text-xs flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <span className="font-bold block uppercase tracking-wider">AI PEDAGOGICAL FEEDBACK UNAVAILABLE</span>
+                      <span className="text-[11px] opacity-80 block">NVIDIA NIM could not be reached — check your API key or network connectivity. Static analysis findings are shown below.</span>
+                      <span className="text-[10px] opacity-60 block">Tip: Verify NVIDIA_API_KEY is set in your .env file and that integrate.api.nvidia.com is reachable.</span>
                     </div>
                   </div>
                 )}
@@ -551,7 +552,8 @@ export const ReviewTool: React.FC = () => {
                       {parseLlmPoints(result.llm_feedback).map((pt, idx) => (
                         <div 
                           key={idx} 
-                          className="p-4 bg-brand-dark/80 border-l-2 border-l-brand-red border border-white/10 font-sans text-sm text-brand-cream leading-relaxed"
+                          className="p-4 bg-brand-dark/80 border-l-2 border-l-brand-red border border-white/10 font-body text-sm text-brand-cream leading-relaxed"
+                          style={{ fontFamily: 'var(--font-body)' }}
                         >
                           <div className="font-mono text-[10px] text-brand-red font-bold uppercase mb-1">
                             SUGGESTION 0{idx + 1}

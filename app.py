@@ -596,10 +596,17 @@ async def researcher_dashboard(
 <head>
     <title>REVU Research Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=switzer@400,500,600,700&display=swap" rel="stylesheet">
     <style>
-        body {{ font-family: system-ui, sans-serif; background: #0B0C0E; color: #fff; padding: 2rem; }}
+        :root {{ --font-display: 'Spectral', Georgia, serif; --font-body: 'Switzer', 'Inter', sans-serif; --font-mono: 'JetBrains Mono', monospace; }}
+        body {{ font-family: var(--font-body); background: #0B0C0E; color: #fff; padding: 2rem; }}
         .card {{ background: #14161B; border: 1px solid #2A2E38; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; }}
-        h1 {{ color: #F30000; font-size: 1.8rem; }}
+        h1 {{ font-family: var(--font-display); color: #F30000; font-size: 1.8rem; font-weight: 600; }}
+        h3 {{ font-family: var(--font-display); font-weight: 500; }}
+        p, span {{ font-family: var(--font-body); }}
         .grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }}
     </style>
 </head>
