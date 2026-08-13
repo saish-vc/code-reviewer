@@ -18,6 +18,7 @@ import uvicorn
 from fastapi import FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 
 from database import (
     get_all_reviews,
@@ -45,6 +46,16 @@ app = FastAPI(
     version="2.0",
     description="CS-education research backend API combining static analysis and LLM feedback.",
 )
+
+# Mount compiled frontend assets (JS/CSS) from the Vite build output
+_dist_assets = os.path.join(os.path.dirname(__file__), "dist", "assets")
+if os.path.isdir(_dist_assets):
+    app.mount("/assets", StaticFiles(directory=_dist_assets), name="assets")
+
+# Mount artwork assets if present
+_dist_artwork = os.path.join(os.path.dirname(__file__), "dist", "artwork")
+if os.path.isdir(_dist_artwork):
+    app.mount("/artwork", StaticFiles(directory=_dist_artwork), name="artwork")
 
 # Configure CORS from ALLOWED_ORIGINS env var
 raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:7860,http://127.0.0.1:5173,http://127.0.0.1:7860")
