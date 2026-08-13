@@ -76,7 +76,7 @@ def get_cached_review(code_hash: str, language: str) -> Optional[Dict[str, Any]]
         cur.execute(
             """
             SELECT * FROM reviews 
-            WHERE code_hash = ? AND language = ? 
+            WHERE code_hash = ? AND language = ? AND llm_available = 1
             ORDER BY timestamp DESC LIMIT 1
             """,
             (code_hash, language),
