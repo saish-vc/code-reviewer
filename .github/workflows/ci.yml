@@ -49,7 +49,7 @@ jobs:
       # ── Desktop app frontend (revu-app/) ─────────────────────────────────
       - name: Install revu-app Node dependencies
         working-directory: revu-app
-        run: npm ci
+        run: npm install
 
       - name: revu-app frontend build check (Vite only, no Rust)
         working-directory: revu-app
