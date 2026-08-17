@@ -57,8 +57,21 @@ _dist_artwork = os.path.join(os.path.dirname(__file__), "dist", "artwork")
 if os.path.isdir(_dist_artwork):
     app.mount("/artwork", StaticFiles(directory=_dist_artwork), name="artwork")
 
-# Configure CORS from ALLOWED_ORIGINS env var
-raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:7860,http://127.0.0.1:5173,http://127.0.0.1:7860")
+# Configure CORS from ALLOWED_ORIGINS env var.
+#
+# Tauri webview sends these origins depending on platform:
+#   - Windows:        http://tauri.localhost
+#   - macOS & Linux:  tauri://localhost
+# Both must be included in ALLOWED_ORIGINS for the desktop app to work.
+#
+# Local dev origins (Vite devserver + backend direct access):
+#   http://localhost:5173, http://127.0.0.1:5173,
+#   http://localhost:7860, http://127.0.0.1:7860
+#
+# The hosted web version of revu-app has been retired (2026-08).
+# Do NOT add a wildcard (*) or the old hosted-app URL here.
+# See .env.example for the canonical ALLOWED_ORIGINS value.
+raw_origins = os.environ.get("ALLOWED_ORIGINS", "http://tauri.localhost,tauri://localhost,http://localhost:5173,http://localhost:7860,http://127.0.0.1:5173,http://127.0.0.1:7860")
 allowed_origins = [o.strip() for o in raw_origins.split(",") if o.strip()]
 
 app.add_middleware(

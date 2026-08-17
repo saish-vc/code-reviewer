@@ -39,8 +39,18 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install Node dependencies
+      # ── Marketing site (root src/) ────────────────────────────────────────
+      - name: Install root Node dependencies (marketing site)
         run: npm ci
 
-      - name: Frontend build check
+      - name: Marketing site build check
+        run: npm run build
+
+      # ── Desktop app frontend (revu-app/) ─────────────────────────────────
+      - name: Install revu-app Node dependencies
+        working-directory: revu-app
+        run: npm ci
+
+      - name: revu-app frontend build check (Vite only, no Rust)
+        working-directory: revu-app
         run: npm run build

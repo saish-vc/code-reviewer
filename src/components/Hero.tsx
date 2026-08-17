@@ -41,8 +41,8 @@ export const Hero: React.FC = () => {
     return () => ctx.revert();
   }, []);
 
-  const scrollToTool = () => {
-    const el = document.getElementById('reviewer-tool');
+  const scrollToDownloads = () => {
+    const el = document.getElementById('downloads');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -127,10 +127,10 @@ export const Hero: React.FC = () => {
 
           <div className="flex items-center gap-4 pt-2">
             <button
-              onClick={scrollToTool}
+              onClick={scrollToDownloads}
               className="px-8 py-4 bg-brand-red hover:bg-brand-darkRed text-white font-mono text-sm font-bold uppercase tracking-widest flex items-center gap-3 transition-all cursor-pointer group shadow-xl shadow-brand-red/25 active:scale-95"
             >
-              <span>TRY A REVIEW</span>
+              <span>DOWNLOAD APP</span>
               <span className="group-hover:translate-x-1 transition-transform">→</span>
             </button>
             

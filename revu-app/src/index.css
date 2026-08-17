@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-display: 'Spectral', Georgia, serif;
+  --font-body: 'Switzer', 'Inter', sans-serif;
+}
+
+@layer base {
+  ::selection {
+    background-color: #F30000;
+    color: #ffffff;
+  }
+  
+  body, p, span, button, input, select, label, a {
+    font-family: var(--font-body);
+  }
+
+  body {
+    background-color: #0B0C0E;
+    color: #FFFFFF;
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-serif, .font-display {
+    font-family: var(--font-display) !important;
+  }
+
+  /* Custom subtle scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0B0C0E;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2A2E38;
+    border-radius: 0px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #F30000;
+  }
+}
+
+/* Custom styling for Renaissance AI HUD UI */
+.hud-tag {
+  background: rgba(11, 12, 14, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.hud-tag:hover {
+  border-color: #F30000;
+  transform: translateY(-2px);
+}
+
+.scan-line {
+  background: linear-gradient(180deg, rgba(243, 0, 0, 0) 0%, rgba(243, 0, 0, 0.8) 50%, rgba(243, 0, 0, 0) 100%);
+  box-shadow: 0 0 15px rgba(243, 0, 0, 0.6);
+}
+
+.grid-overlay {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.editorial-border {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.editorial-border-red {
+  border: 1px solid rgba(243, 0, 0, 0.4);
+}

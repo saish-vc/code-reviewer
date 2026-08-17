@@ -1,0 +1,121 @@
+name: Release Desktop App
+
+# Triggered when a version tag (e.g. v1.0.0) is pushed.
+# Builds the Tauri desktop app for all three platforms and publishes
+# the installers as assets on the GitHub Release.
+#
+# Release flow:
+#   1. Bump version in revu-app/package.json AND revu-app/src-tauri/tauri.conf.json
+#   2. Commit with message: "chore: bump version to v1.x.x"
+#   3. Create and push the tag: git tag v1.x.x && git push origin v1.x.x
+#   4. This workflow fires automatically.
+#
+# No code signing. Users may see OS security warnings on first launch —
+# this is expected without a paid certificate. See README for workarounds.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    permissions:
+      contents: write   # needed to create/update the GitHub Release
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            args: ''
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+          - platform: ubuntu-22.04
+            args: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # -----------------------------------------------------------------------
+      # Node.js setup (for the Vite/React frontend inside revu-app/)
+      # -----------------------------------------------------------------------
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: revu-app/package-lock.json
+
+      # -----------------------------------------------------------------------
+      # Rust toolchain — required by Tauri
+      # -----------------------------------------------------------------------
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          # Additional targets for macOS universal binary
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      # Cache Rust build artifacts to speed up subsequent runs
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './revu-app/src-tauri -> target'
+
+      # -----------------------------------------------------------------------
+      # Linux-only: install Tauri system dependencies
+      # -----------------------------------------------------------------------
+      - name: Install Linux system dependencies (ubuntu only)
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev
+
+      # -----------------------------------------------------------------------
+      # Generate Tauri icon set from the source image
+      # -----------------------------------------------------------------------
+      - name: Install revu-app npm dependencies
+        working-directory: revu-app
+        run: npm ci
+
+      - name: Generate Tauri icon set
+        working-directory: revu-app
+        run: npx tauri icon src-tauri/icons/app-icon-source.jpg
+
+      # -----------------------------------------------------------------------
+      # Build & release via tauri-action
+      # -----------------------------------------------------------------------
+      - name: Build and release Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Production backend URL baked into the Vite build
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        with:
+          projectPath: ./revu-app
+          tagName: ${{ github.ref_name }}
+          releaseName: 'REVU ${{ github.ref_name }}'
+          releaseBody: |
+            ## REVU ${{ github.ref_name }}
+
+            Desktop installer for Windows, macOS (Intel & Apple Silicon), and Linux.
+
+            > **Unsigned build notice**: REVU is distributed without a paid code-signing certificate.
+            > - **Windows**: SmartScreen may warn on first launch → click "More info" → "Run anyway"
+            > - **macOS**: Gatekeeper may block the app → right-click the .app → "Open"
+
+            See [CHANGELOG.md](https://github.com/saish-vc/code-reviewer/blob/main/CHANGELOG.md) for full release notes.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}

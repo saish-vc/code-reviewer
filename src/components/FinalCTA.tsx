@@ -2,8 +2,8 @@ import React from 'react';
 import { ArrowUpRight, ShieldCheck } from 'lucide-react';
 
 export const FinalCTA: React.FC = () => {
-  const scrollToTool = () => {
-    const el = document.getElementById('reviewer-tool');
+  const scrollToDownloads = () => {
+    const el = document.getElementById('downloads');
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -35,10 +35,10 @@ export const FinalCTA: React.FC = () => {
         </p>
 
         <button
-          onClick={scrollToTool}
+          onClick={scrollToDownloads}
           className="px-10 py-5 bg-brand-red hover:bg-brand-darkRed text-white font-mono text-sm font-bold uppercase tracking-widest flex items-center gap-3 transition-all cursor-pointer shadow-xl shadow-brand-red/30 active:scale-95 group mt-4"
         >
-          <span>START A REVIEW</span>
+          <span>DOWNLOAD FOR FREE</span>
           <ArrowUpRight className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
         </button>
 

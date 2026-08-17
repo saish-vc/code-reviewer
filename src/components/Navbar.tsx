@@ -70,20 +70,20 @@ export const Navbar: React.FC = () => {
             03 / METHODOLOGY
           </button>
           <button 
-            onClick={() => scrollToSection('reviewer-tool')} 
+            onClick={() => scrollToSection('downloads')} 
             className="hover:text-white transition-colors cursor-pointer text-brand-red font-semibold"
           >
-            04 / LIVE TOOL
+            04 / DOWNLOAD
           </button>
         </nav>
 
         {/* Action Button */}
         <div>
           <button
-            onClick={() => scrollToSection('reviewer-tool')}
+            onClick={() => scrollToSection('downloads')}
             className="px-5 py-2.5 bg-brand-red hover:bg-brand-darkRed text-white font-mono text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-brand-red/20 active:scale-95"
           >
-            <span>TRY A REVIEW</span>
+            <span>DOWNLOAD APP</span>
             <ArrowUpRight className="w-4 h-4" />
           </button>
         </div>
