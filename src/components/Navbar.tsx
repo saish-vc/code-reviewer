@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Shield, ArrowUpRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Download } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
@@ -13,82 +14,48 @@ export const Navbar: React.FC = () => {
   }, []);
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled 
-        ? 'bg-brand-dark/90 backdrop-blur-md border-b border-white/10 py-4' 
-        : 'bg-transparent py-6'
-    }`}>
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
-        
-        {/* Brand Logo & Meta Tag */}
-        <div className="flex items-center gap-4">
-          <a href="#" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-brand-red flex items-center justify-center text-white font-serif font-bold text-xl group-hover:scale-105 transition-transform">
-              R
-            </div>
-            <div className="flex flex-col">
-              <span className="font-serif text-2xl font-bold tracking-widest text-white leading-none">
-                REVU
-              </span>
-              <span className="font-mono text-[9px] text-brand-gray tracking-widest uppercase mt-0.5">
-                CS-Ed Research v1
-              </span>
-            </div>
-          </a>
+    <motion.header
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-6 pointer-events-none"
+    >
+      {/* Invisible spacer for flex layout balance */}
+      <div className="w-[120px] hidden md:block"></div>
 
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 text-xs font-mono text-brand-gray">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span>NVIDIA NIM LLM</span>
-          </div>
-        </div>
-
-        {/* Minimal Navigation */}
-        <nav className="hidden md:flex items-center gap-8 font-mono text-xs text-brand-gray uppercase tracking-wider">
-          <button 
-            onClick={() => scrollToSection('manifesto')} 
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            01 / STUDY
-          </button>
-          <button 
-            onClick={() => scrollToSection('augmented')} 
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            02 / SYSTEM
-          </button>
-          <button 
-            onClick={() => scrollToSection('capabilities')} 
-            className="hover:text-white transition-colors cursor-pointer"
-          >
-            03 / METHODOLOGY
-          </button>
-          <button 
-            onClick={() => scrollToSection('downloads')} 
-            className="hover:text-white transition-colors cursor-pointer text-brand-red font-semibold"
-          >
-            04 / DOWNLOAD
-          </button>
-        </nav>
-
-        {/* Action Button */}
-        <div>
+      {/* Floating Pill Nav */}
+      <nav className={`pointer-events-auto flex items-center gap-6 px-8 py-3 rounded-full transition-colors duration-300 ${scrolled ? 'bg-brand-white text-brand-black shadow-xl shadow-black/10' : 'bg-brand-white/10 backdrop-blur-md text-brand-white border border-brand-white/10'}`}>
+        {['About', 'Product', 'How It Works', 'FAQ', 'Contact'].map((item) => (
           <button
-            onClick={() => scrollToSection('downloads')}
-            className="px-5 py-2.5 bg-brand-red hover:bg-brand-darkRed text-white font-mono text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-brand-red/20 active:scale-95"
+            key={item}
+            onClick={() => scrollToSection(item.toLowerCase().replace(/ /g, '-'))}
+            className={`font-sans text-[11px] font-medium uppercase tracking-widest transition-colors hover:text-brand-accent`}
           >
-            <span>DOWNLOAD APP</span>
-            <ArrowUpRight className="w-4 h-4" />
+            {item}
           </button>
-        </div>
+        ))}
+      </nav>
 
+      {/* Download CTA */}
+      <div className="pointer-events-auto">
+        <button
+          onClick={() => scrollToSection('downloads')}
+          className="group relative flex items-center gap-3 px-6 py-3 bg-brand-black text-brand-white rounded-full overflow-hidden transition-transform active:scale-95"
+        >
+          {/* Accent hover background */}
+          <div className="absolute inset-0 bg-brand-darkGray translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+          
+          <span className="relative z-10 font-sans text-xs font-semibold uppercase tracking-widest">
+            Download REVU
+          </span>
+          <div className="relative z-10 w-2 h-2 rounded-full bg-brand-accent group-hover:scale-150 transition-transform duration-300" />
+        </button>
       </div>
-    </header>
+    </motion.header>
   );
 };
