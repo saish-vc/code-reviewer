@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
   "productName": "REVU",
   "identifier": "com.saish-vc.revu",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",

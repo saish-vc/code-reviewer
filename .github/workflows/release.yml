@@ -1,0 +1,42 @@
+name: Release Desktop App
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+    
+    runs-on: ${{ matrix.platform }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install revu-app dependencies
+        working-directory: revu-app
+        run: npm install
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: revu-app
+          tagName: ${{ github.ref_name }}
+          releaseName: "REVU Desktop ${{ github.ref_name }}"
+          releaseBody: "Automated release of the new monochrome brutalist REVU Desktop app."
+          releaseDraft: false
+          prerelease: false
